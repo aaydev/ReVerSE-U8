@@ -1,6 +1,6 @@
 	DEVICE	ZXSPECTRUM48
 
-; PCB ReVerSE U9EP3C POST v0.2 (build 20140327)
+; PCB ReVerSE U9EP3C POST
 
 ; -------------------------------------------------------------------------------
 ; -- Карта памяти N80v1 CPU
@@ -59,31 +59,73 @@ Test
 		ld hl,BUFFER
 		call PrintStr
 
-		ld de,str02
+		ld de,strgradient
+		ld hl,BUFFER+160*29
+		call PrintStr
+
+
+		ld de,strTitle
 		ld hl,BUFFER+160*2
 		call PrintStr
-
-		ld de,str03
-		ld hl,BUFFER+160*28
+		ld de,str0301
+		ld hl,BUFFER+160*4
 		call PrintStr
+		ld de,str0302
+		ld hl,BUFFER+160*5
+		call PrintStr
+		ld de,str0303
+		ld hl,BUFFER+160*6
+		call PrintStr
+		ld de,str0304
+		ld hl,BUFFER+160*7
+		call PrintStr
+		ld de,str0305
+		ld hl,BUFFER+160*8
+		call PrintStr
+		ld de,str0306
+		ld hl,BUFFER+160*9
+		call PrintStr
+		ld de,str0307
+		ld hl,BUFFER+160*10
+		call PrintStr
+		ld de,str0308
+		ld hl,BUFFER+160*11
+		call PrintStr
+		ld de,str0309
+		ld hl,BUFFER+160*12
+		call PrintStr
+		ld de,str0310
+		ld hl,BUFFER+160*13
+		call PrintStr
+		ld de,str0311
+		ld hl,BUFFER+160*15
+		call PrintStr
+		ld de,str0312
+		ld hl,BUFFER+160*16
+		call PrintStr
+		
+		ld de,str02
+		ld hl,BUFFER+160*28
+		call PrintStr		
 
 test1		in a,(port_addr_hi)
-		ld hl,BUFFER+160*2+4*2
+		ld hl,BUFFER+160*28+4*2
 		call ByteToHexStr
 
 		in a,(port_addr_low)
 		call ByteToHexStr
 
 		in a,(port_data)
-		ld hl,BUFFER+160*2+16*2
+		ld hl,BUFFER+160*28+16*2
 		call ByteToHexStr
+
 
 		jp test1
 
 ;--------------------------------------
 ; Очистка текстового видео буфера	
 ;--------------------------------------
-Cls		ld de,#0F00
+Cls		ld de,#0700
 		ld bc,#0960
 		ld hl,BUFFER
 cls1		ld (hl),e
@@ -154,10 +196,29 @@ ByteToHexStr	ld b,a
 
 ;				 00000000001111111111222222222233333333334444444444555555555566666666667777777777	
 ;				 01234567890123456789012345678901234567890123456789012345678901234567890123456789
-str01		db 1,%01111000,	"                                   REVERSE-U9                                   "
-		db 1,%00001111, "U9-Speccy Version 0.8.8 Rev20140401 By MVV",0
-str02		db 1,%00001111,	"IO= ....h Data= ..h",0
-str03		db 1,%00101000, "F4-CPU Reset  F5-NMI       F6-DivIDE  F7-Frame           F8-Info       F9-Turbo "
-		db 1,%00101000, "F10-GS Reset  F11-SounDrv  F12-Mode   Scroll-Hard Reset  Num-Kempston           ",0
+str01		db 1,%01111000,	" REVERSE-U9 POST                           U9-Speccy v.0.8.9 build date: "
+Build		db "240910"
+		db " ",0
 
-	savebin "rom.bin",StartProg, 16384
+str02		db 1,%00000110,	"IO= ....h Data= ..h",0
+
+strgradient	db 1,%00000000, "     ", 1,%01000000, "     ", 1,%00001000, "     ", 1,%01001000, "     ", 1,%00010000, "     ", 1,%01010000, "     ", 1,%00011000, "     ", 1,%01011000, "     "
+		db 1,%00100000, "     ", 1,%01100000, "     ", 1,%00101000, "     ", 1,%01101000, "     ", 1,%00110000, "     ", 1,%01110000, "     ", 1,%00111000, "     ", 1,%01111000, "     ", 0
+
+
+strTitle	db 1,%01000111, "-= CONTROL KEYS =-",0
+str0301		db 1,%00000111, " F3:  Clock #1 (7/3.5 MHz)",0
+str0302		db 1,%00000111, " F4:  CPU Reset",0
+str0303		db 1,%00000111, " F5:  NMI",0
+str0304		db 1,%00000111, " F6:  divMMC (off/on)",0	
+str0305		db 1,%00000111, " F7:  Frame (off/on)",0
+str0306		db 1,%00000111, " F8:  POST",0
+str0307		db 1,%00000111, " F9:  Clock #2 (14/7 MHz)",0
+str0308		db 1,%00000111, " F10: GS Reset",0
+str0309		db 1,%00000111, " F11: SounDrive",0
+str0310		db 1,%00000111, " F12: Video: (Spectrum/Pentagon)",0
+
+str0311		db 1,%00000111, " Scroll Lock: Hard Reset",0
+str0312		db 1,%00000111, " Num. Lock: Kempston",0
+
+		savebin "rom.bin",StartProg, 16384

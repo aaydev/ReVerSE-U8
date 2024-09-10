@@ -7,32 +7,32 @@
 	<width>1</width>
 	<mode>7</mode>
 	<hex_block>
-		<hex_filename>C:/_work/reverse/projects/speccy/boards/reverse_u9/firmwares/loader/rom/esxmmc.hex</hex_filename>
+		<hex_filename>C:/Users/alexe/Desktop/u8_speccy/boards/reverse_u9/firmwares/loader/rom/esxmmc.hex</hex_filename>
 		<hex_addressing>relative</hex_addressing>
 		<hex_offset>491520</hex_offset>
 	</hex_block>
 	<hex_block>
-		<hex_filename>C:/_work/reverse/projects/speccy/boards/reverse_u9/firmwares/loader/rom/82.hex</hex_filename>
+		<hex_filename>C:/Users/alexe/Desktop/u8_speccy/boards/reverse_u9/firmwares/loader/rom/82.hex</hex_filename>
 		<hex_addressing>relative</hex_addressing>
 		<hex_offset>475136</hex_offset>
 	</hex_block>
 	<hex_block>
-		<hex_filename>C:/_work/reverse/projects/speccy/boards/reverse_u9/firmwares/loader/rom/86.hex</hex_filename>
+		<hex_filename>C:/Users/alexe/Desktop/u8_speccy/boards/reverse_u9/firmwares/loader/rom/86.hex</hex_filename>
 		<hex_addressing>relative</hex_addressing>
 		<hex_offset>458752</hex_offset>
 	</hex_block>
 	<hex_block>
-		<hex_filename>C:/_work/reverse/projects/speccy/boards/reverse_u9/firmwares/loader/rom/trdos_605e.hex</hex_filename>
+		<hex_filename>C:/Users/alexe/Desktop/u8_speccy/boards/reverse_u9/firmwares/loader/rom/trdos_605e.hex</hex_filename>
 		<hex_addressing>relative</hex_addressing>
 		<hex_offset>442368</hex_offset>
 	</hex_block>
 	<hex_block>
-		<hex_filename>C:/_work/reverse/projects/speccy/boards/reverse_u9/firmwares/loader/rom/hegluk_19.hex</hex_filename>
+		<hex_filename>C:/Users/alexe/Desktop/u8_speccy/boards/reverse_u9/firmwares/loader/rom/hegluk_19.hex</hex_filename>
 		<hex_addressing>relative</hex_addressing>
 		<hex_offset>425984</hex_offset>
 	</hex_block>
 	<hex_block>
-		<hex_filename>C:/_work/reverse/projects/speccy/boards/reverse_u9/firmwares/loader/rom/gs105a.hex</hex_filename>
+		<hex_filename>C:/Users/alexe/Desktop/u8_speccy/boards/reverse_u9/firmwares/loader/rom/gs105a.hex</hex_filename>
 		<hex_addressing>relative</hex_addressing>
 		<hex_offset>393216</hex_offset>
 	</hex_block>
@@ -44,7 +44,9 @@
 			<sof_filename>u9ep3c.sof</sof_filename>
 		</bit0>
 	</sof_data>
-	<version>4</version>
+	<version>5</version>
+	<create_cvp_file>0</create_cvp_file>
+	<auto_create_rpd>0</auto_create_rpd>
 	<options>
 		<map_file>1</map_file>
 	</options>

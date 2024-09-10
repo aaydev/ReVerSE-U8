@@ -1,69 +1,70 @@
 -------------------------------------------------------------------[15.02.2014]
 -- General Sound
 -------------------------------------------------------------------------------
--- V0.1 	01.11.2011	первая версия
+-- V0.1 11/01/2011 first version
 -- V0.2
--- V0.3 	19.12.2011	CPU @ 84MHz, подтверждение INT#
--- V0.4 	10.05.2013	исправлен bit7_flag, bit0_flag
--- V0.5 	29.05.2013	добавлена громкость каналов, CPU @ 21MHz
--- V0.6		21.07.2013	исправлен int_n
+-- V0.3 12/19/2011 CPU @ 84MHz, INT# confirmation
+-- V0.4 05/10/2013 bit7_flag, bit0_flag fixed
+-- V0.5 05/29/2013 channel volume added, CPU @ 21MHz
+-- V0.6 07/21/2013 int_n fixed
+
 
 -- CPU: Z80
 -- ROM: 32K
 -- RAM: 480K
 -- INT: 37.5KHz
 
--- #xxBB Command register - регистр команд, доступный для записи
--- #xxBB Status register - регистр состояния, доступный для чтения
---		bit 7 флаг данных
---		bit <6:1> Не определен
---		bit 0 флаг команд. Этот регистр позволяет определить состояние GS, в частности можно ли прочитать или записать очередной байт данных, или подать очередную команду, и т.п.
--- #xxB3 Data register - регистр данных, доступный для записи. В этот регистр Спектрум записывает данные, например, это могут быть аргументы команд.
--- #xxB3 Output register - регистр вывода, доступный для чтения. Из этого регистра Спектрум читает данные, идущие от GS
+-- #xxBB Command register - writable command register
+-- #xxBB Status register - readable status register
+-- bit 7 data flag
+-- bit <6:1> Not defined
+-- bit 0 command flag. This register allows you to determine the state of the GS, in particular whether it is possible to read or write the next byte of data, or issue the next command, etc.
+-- #xxB3 Data register - writable data register. Spectrum writes data to this register, for example, these can be command arguments.
+-- #xxB3 Output register - readable output register. Spectrum reads data from this register coming from the GS
 
--- Внутренние порта:
--- #xx00 "расширенная память" - регистр доступный для записи
---		bit <3:0> переключают страницы по 32Kb, страница 0 - ПЗУ
---		bit <7:0> не используются
+-- Internal ports:
+-- #xx00 "extended memory" - writable register
+-- bit <3:0> switches pages by 32Kb, page 0 - ROM
+-- bit <7:0> not used
 
--- порты 1 - 5 "обеспечивают связь с SPECTRUM'ом"
--- #xx01 чтение команды General Sound'ом
---		bit <7:0> код команды
--- #xx02 чтение данных General Sound'ом
---		bit <7:0> данные
--- #xx03 запись данных General Sound'ом для SPECTRUM'a
---		bit <7:0> данные
--- #xx04 чтение слова состояния General Sound'ом
---		bit 0 флаг команд
---		bit 7 флаг данных
--- #xx05 сбрасывает бит D0 (флаг команд) слова состояния
+-- ports 1-5 "provide communication with SPECTRUM"
+-- #xx01 General Sound command read
+-- bit <7:0> command code
+-- #xx02 General Sound data read
+-- bit <7:0> data
+-- #xx03 General Sound data write for SPECTRUM
+-- bit <7:0> data
+-- #xx04 General Sound status word read
+-- bit 0 command flag
+-- bit 7 data flag
+-- #xx05 resets bit D0 (command flag) of status word
 
--- порты 6 - 9 "регулировка громкости" в каналах 1 - 4
--- #xx06 "регулировка громкости" в канале 1
---		bit <5:0> громкость
---		bit <7:6> не используются
--- #xx07 "регулировка громкости" в канале 2
---		bit <5:0> громкость
---		bit <7:6> не используются
--- #xx08 "регулировка громкости" в канале 3
---		bit <5:0> громкость
---		bit <7:6> не используются
--- #xx09 "регулировка громкости" в канале 4
---		bit <5:0> громкость
---		bit <7:6> не используются
+-- ports 6-9 "volume control" in channels 1 - 4
+-- #xx06 "volume control" on channel 1
+-- bit <5:0> volume
+-- bit <7:6> not used
+-- #xx07 "volume control" on channel 2
+-- bit <5:0> volume
+-- bit <7:6> not used
+-- #xx08 "volume control" on channel 3
+-- bit <5:0> volume
+-- bit <7:6> not used
+-- #xx09 "volume control" on channel 4
+-- bit <5:0> volume
+-- bit <7:6> not used
 
--- #xx0A устанавливает бит 7 слова состояния не равным биту 0 порта #xx00
--- #xx0B устанавливает бит 0 слова состояния равным биту 5 порта #xx06
+-- #xx0A sets bit 7 of the status word not equal to bit 0 of port #xx00
+-- #xx0B sets bit 0 of the status word equal to bit 5 of port #xx06
 
---Распределение памяти
---#0000 - #3FFF  -  первые 16Kb ПЗУ
---#4000 - #7FFF  -  первые 16Kb первой страницы ОЗУ
---#8000 - #FFFF  -  листаемые страницы по 32Kb
---                  страница 0  - ПЗУ,
---                  страница 1  - первая страница ОЗУ
---                  страницы 2... ОЗУ
+--Memory allocation
+--#0000 - #3FFF - first 16Kb ROM
+--#4000 - #7FFF - first 16Kb of the first page of RAM
+--#8000 - #FFFF - scrollable pages of 32Kb
+-- page 0 - ROM,
+-- page 1 - first page of RAM
+-- pages 2... RAM
 
---Данные в каналы заносятся при чтении процессором ОЗУ по адресам  #6000 - #7FFF автоматически.
+--Data is entered into channels automatically when the processor reads RAM at addresses #6000 - #7FFF.
 
 library IEEE; 
 use IEEE.std_logic_1164.all; 
@@ -135,7 +136,8 @@ generic map (
 	IOWait		=> 1)	-- 0 => Single cycle I/O, 1 => Std I/O cycle
 port map(
 	RESET_n		=> not RESET,
-	CLK_n		=> not CLKGS,
+	--CLK_n		=> not CLKGS,
+	CLK		=> CLKGS,
 	WAIT_n		=> '1',
 	INT_n		=> int_n,
 	NMI_n		=> '1',
@@ -207,7 +209,7 @@ end process;
 
 process (CLK, A, IORQ_n, WR_n, RESET)
 begin
-	-- запись со стороны спектрума
+-- recording from the spectrum side
  	if RESET = '1' then
 		port_xxbb_reg <= (others => '0');
 		port_xxb3_reg <= (others => '0');
@@ -219,7 +221,7 @@ end process;
 
 process (A, bit7_flag, bit0_flag, port_xx03_reg)
 begin	
-	-- чтение со стороны спектрума
+-- recording from the spectrum side
 	if A(3) = '1' then	-- port #xxBB
 		DO <= bit7_flag & "111111" & bit0_flag;
 	else				-- port #xxB3
@@ -256,13 +258,13 @@ begin
 	end if;
 
 	case cpu_a_bus(15 downto 14) is
-		when "00" => mem <= "00000";										--#0000 - #3FFF  -  первые 16Kb ПЗУ
-		when "01" => mem <= "00010";										--#4000 - #7FFF  -  первые 16Kb первой страницы ОЗУ
-		when others => mem <= port_xx00_reg(3 downto 0) & cpu_a_bus(14);	--#8000 - #FFFF  -  листаемые страницы по 32Kb
+		when "00" => mem <= "00000";										--#0000 - #3FFF  -  first 16Kb ROM
+		when "01" => mem <= "00010";										--#4000 - #7FFF  -  first 16Kb of the first page of RAM
+		when others => mem <= port_xx00_reg(3 downto 0) & cpu_a_bus(14);	--#8000 - #FFFF  -  printed pages of 32Kb
 	end case;
 end process;
 
--- Шина данных CPU
+-- CPU data bus
 cpu_di_bus <=	MDI when (cpu_mreq_n = '0' and cpu_rd_n = '0') else
 				bit7_flag & "111111" & bit0_flag when (cpu_iorq_n = '0' and cpu_rd_n = '0' and cpu_a_bus(3 downto 0) = X"4") else
 				port_xxbb_reg when (cpu_iorq_n = '0' and cpu_rd_n = '0' and cpu_a_bus(3 downto 0) = X"1") else

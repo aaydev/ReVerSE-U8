@@ -1,24 +1,24 @@
--------------------------------------------------------------------[01.04.2014]
--- u8-Speccy Version 0.8.8
+-------------------------------------------------------------------[2024]
+-- u8-Speccy Version 0.8.9 
 -- DEVBOARD ReVerSE-U8
 -------------------------------------------------------------------------------
--- V0.1	 	05.11.2011	Первая версия
--- V0.2		21.10.2011	VS1053
--- V0.5 	20.11.2011	Добавлен GS
--- V0.5.1 	11.12.2011	Сброс GS на клавише F10
--- V0.5.2 	14.12.2011	UART
--- V0.5.3 	20.12.2011	INT, CPU GS @ 84MHz
--- V0.6 	16.12.2012	ROM теперь считывается из M25P40
--- V0.7 	29.05.2013	Обновлен T80CPU, UART. В модуле GS исправлена работа защелок bit7_flag, bit0_flag (синхронный процесс), частота 21МГц, добавленна громкость каналов
--- V0.8		21.07.2013	Корректная работа модуля ZC при key_f(9) on/off. В модуле GS исправлена работа int_n (синхронный процесс)
--- V0.8.1	23.07.2013	Убран опрос DREQ в режиме STREAM (были слышны потрескивания), устранена ошибка переключения видео страниц в vid_wr
--- V0.8.2	24.07.2013	Установлена частота ZC 28МГц
--- V0.8.3	10.08.2013	Исправление ticksPerUsec * 3500000 в модулях io_ps2_mouse и io_ps2_keyboard
--- V0.8.4	01.09.2013	Переписан SPI Master, независимая работа интерфейса от системной частоты. Изменения в контроллере SDRAM
--- V0.8.5	07.09.2013	YM2149 временно заменил на AY8910, был слышен шум после остановки проигрывания
--- V0.8.6	09.03.2014	Изменения в контроллере SDRAM, добавлена рамка	
--- V0.8.7	27.03.2014	Изменения видео режимов pentagon, spectrum. Добавлен DivMMC, периферийный контроллер.
--- V0.8.8	01.04.2014	Исправление в переключении после чтения опкода в DivMMC (shurik-ua). Изменения в контроллер SDRAM, добавлены защелки RD, WR, RFSH для предотвращения повторного захвата
+-- V0.1 12.02.2011 First version.
+-- V0.5 01.11.2011 GS added.
+-- V0.5.1 11.12.2011 GS reset on F10 key.
+-- V0.5.2 14.12.2011 UART.
+-- V0.5.3 20.12.2011 INT, CPU GS @ 84MHz.
+-- V0.6 16.12.2012 ROM is now read from M25P40.
+-- V0.7 29.05.2013 T80CPU, UART updated. In GS module bit7_flag, bit0_flag latches (synchronous process) are fixed, frequency is 21MHz, channel volume is added.
+-- V0.8 21.07.2013 Correct operation of ZC module with turbo on/off. Fixed int_n (synchronous process) operation in GS module.
+-- V0.8.1 23.07.2013 Fixed video page switching error in vid_wr.
+-- V0.8.2 24.07.2013 Set ZC frequency to 28 MHz.
+-- V0.8.3 10.08.2013 Fixed ticksPerUsec * 3500000 in io_ps2_mouse and io_ps2_keyboard modules.
+-- V0.8.4 01.09.2013 Rewritten SPI Master, interface operation independent of system frequency. Changes in SDRAM controller.
+-- V0.8.5 09/07/2013 YM2149 temporarily replaced with AY8910, noise was heard after stopping playback.
+-- V0.8.6 03/05/2014 Changes in SDRAM controller, added frame.
+-- V0.8.7 03/27/2014 Changes in video modes pentagon, spectrum. Added DivMMC, peripheral controller.
+-- V0.8.8 04/01/2014 Correction in switching after reading opcode in DivMMC (shurik-ua). Changes in SDRAM controller, added latches RD, WR, RFSH to prevent re-capture
+-- V0.8.9 10/09/2024 esxDOS 0.8.9 updated, T80 updated, port $ff restored
 
 -- http://zx.pk.ru/showthread.php?t=13875
 
@@ -85,16 +85,16 @@ use IEEE.numeric_std.ALL;
 
 
 -- FLASH 512K:
--- 00000-5FFFF		Конфигурация Cyclone EP3C10
+-- 00000-5FFFF		Config Cyclone EP3C10
 -- 60000-63FFF		General Sound ROM				16K
 -- 64000-67FFF		General Sound ROM				16K
--- 68000-6BFFF		GLUK 							16K
+-- 68000-6BFFF		GLUK 								16K
 -- 6C000-6FFFF		TR-DOS 							16K
 -- 70000-73FFF		OS'86 							16K
 -- 74000-77FFF		OS'82 							16K
--- 78000-7AFFF		DivMMC							 8K
--- 7B000-7BFFF		свободно						 8К
--- 7C000-7FFFF		свободно						16К
+-- 78000-7AFFF		DivMMC							8K
+-- 7B000-7BFFF		free						 		8K
+-- 7C000-7FFFF		free								16K
 
 entity u8speccy is
 port (
@@ -208,8 +208,9 @@ signal vid_hsync		: std_logic;
 signal vid_vsync		: std_logic;
 signal vid_hcnt			: std_logic_vector(8 downto 0);
 signal vid_int			: std_logic;
---signal vid_border		: std_logic;
---signal vid_attr		: std_logic_vector(7 downto 0);
+--!
+signal vid_border		: std_logic;
+signal vid_attr		: std_logic_vector(7 downto 0);
 signal rgb				: std_logic_vector(5 downto 0);
 -- Z-Controller
 signal zc_do_bus		: std_logic_vector(7 downto 0);
@@ -267,14 +268,20 @@ signal covox_b			: std_logic_vector(7 downto 0);
 signal covox_c			: std_logic_vector(7 downto 0);
 signal covox_d			: std_logic_vector(7 downto 0);
 -- General Sound
-signal gs_a				: std_logic_vector(13 downto 0);
-signal gs_b				: std_logic_vector(13 downto 0);
-signal gs_c				: std_logic_vector(13 downto 0);
-signal gs_d				: std_logic_vector(13 downto 0);
+--signal gs_a				: std_logic_vector(13 downto 0);
+--signal gs_b				: std_logic_vector(13 downto 0);
+--signal gs_c				: std_logic_vector(13 downto 0);
+--signal gs_d				: std_logic_vector(13 downto 0);
+signal gs_a		: std_logic_vector(13 downto 0) := "00000000000000";
+signal gs_b		: std_logic_vector(13 downto 0) := "00000000000000";
+signal gs_c		: std_logic_vector(13 downto 0) := "00000000000000";
+signal gs_d		: std_logic_vector(13 downto 0) := "00000000000000";
 signal gs_do_bus		: std_logic_vector(7 downto 0);
 signal gs_mdo			: std_logic_vector(7 downto 0);
 signal gs_ma			: std_logic_vector(18 downto 0);
-signal gs_mwe_n			: std_logic;
+--signal gs_mwe_n			: std_logic;
+signal gs_mwe_n		: std_logic := '1';
+
 -- UART
 signal uart_do_bus		: std_logic_vector(7 downto 0);
 signal uart_wr			: std_logic;
@@ -344,7 +351,8 @@ generic map (
 	IOWait		=> 1)	-- 0 => Single cycle I/O, 1 => Std I/O cycle
 port map(
 	RESET_n		=> cpu0_reset_n,
-	CLK_n		=> cpuclk,
+	--CLK_n		=> cpuclk,
+	CLK		=> cpuclk,
 	WAIT_n		=> '1',
 	INT_n		=> cpu0_int_n,
 	NMI_n		=> cpu0_nmi_n,
@@ -373,9 +381,14 @@ port map (
 	ENA			=> ena_7mhz & ena_14mhz,
 	INTA		=> cpu0_inta_n,
 	INT			=> cpu0_int_n,
-	BORDER		=> port_xxfe_reg(2 downto 0),	-- Биты D0..D2 порта xxFE определяют цвет бордюра
-	BORDON		=> open, --vid_border,
-	ATTR		=> open, --vid_attr,
+	BORDER		=> port_xxfe_reg(2 downto 0),	-- Bits D0..D2 of port xxFE define the border color
+	
+	--!
+	--BORDON		=> open, --vid_border,
+	BORDON		=> vid_border,
+	--ATTR		=> open, --vid_attr,
+	ATTR		=> vid_attr,
+	
 	A			=> vid_a_bus,
 	DI			=> vid_di_bus,
 	MODE		=> key_f(7) & key_f(12),		-- 0: Spectrum; 1: Pentagon
@@ -590,7 +603,7 @@ port map (
 -- General Sound
 U15: entity work.gs
 port map (
-	RESET		=> not port_0001_reg(2) or kb_f_bus(10) or areset,	-- клавиша [F10] reset GS
+	RESET		=> not port_0001_reg(2) or kb_f_bus(10) or areset,	-- key [F10] reset GS
 	CLK			=> clk_bus,
 	CLKGS		=> clk_interface,
 	A			=> cpu0_a_bus,
@@ -663,7 +676,7 @@ port map (
 	MISO		=> SD_DAT0);
 	
 -------------------------------------------------------------------------------
--- Формирование глобальных сигналов
+-- Formation of global signals
 process (clk_bus)
 begin
 	if clk_bus'event and clk_bus = '0' then
@@ -677,11 +690,12 @@ ena_3_5mhz <= ena_cnt(2) and ena_cnt(1) and ena_cnt(0);
 ena_1_75mhz <= ena_cnt(3) and ena_cnt(2) and ena_cnt(1) and ena_cnt(0);
 ena_0_4375mhz <= ena_cnt(5) and ena_cnt(4) and ena_cnt(3) and ena_cnt(2) and ena_cnt(1) and ena_cnt(0);
 
-areset <= not RST_n;							-- глобальный сброс
-reset <= areset or key_reset or not locked;		-- горячий сброс
-cpu0_reset_n <= not(reset) and not(kb_f_bus(4));-- CPU сброс
+areset <= not RST_n;							-- global reset
+reset <= areset or key_reset or not locked;		-- hot reset
+cpu0_reset_n <= not(reset) and not(kb_f_bus(4));-- CPU reset
 cpu0_inta_n <= cpu0_iorq_n or cpu0_m1_n;		-- INTA
-cpu0_nmi_n	<= kb_f_bus(5);						-- NMI
+--cpu0_nmi_n	<= kb_f_bus(5);						-- NMI
+cpu0_nmi_n <= not kb_f_bus(5);				-- NMI
 
 -------------------------------------------------------------------------------
 -- SDRAM
@@ -691,7 +705,7 @@ sdr_rd <= not (cpu0_mreq_n or cpu0_rd_n);
 sdr_rfsh <= not cpu0_rfsh_n;
 
 -------------------------------------------------------------------------------
--- Делитель
+-- Divider
 cpuclk <= clk_bus and cpu0_ena;
 cpu0_mult <= key_f(9) & key_f(3);	-- 00 = 3.5MHz; 01 = 7.0MHz; 10 = 7MHz; 11 = 14MHz
 process (cpu0_mult, ena_3_5mhz, ena_7mhz, ena_14mhz)
@@ -712,11 +726,11 @@ SD_CLK 	<= divmmc_sclk when key_f(6) = '1' else zc_sclk;
 SD_CMD 	<= divmmc_mosi when key_f(6) = '1' else zc_mosi;
 
 -------------------------------------------------------------------------------
--- Регистры
+-- Registers
 process (areset, clk_bus, cpu0_a_bus, port_0000_reg, cpu0_mreq_n, cpu0_wr_n, cpu0_do_bus, port_0001_reg)
 begin
 	if areset = '1' then
-		port_0000_reg <= (others => '0');	-- маска по AND порта #DFFD
+		port_0000_reg <= (others => '0');	-- mask by AND port #DFFD
 		port_0001_reg <= (others => '0');	-- bit2 = 0:Loader ON, 1:Loader OFF; bit1 = 0:SRAM<->CPU0, 1:SRAM<->GS; bit0 = 0:VS1053, 1:M25P40
 		loader_act <= '1';
 	elsif clk_bus'event and clk_bus = '1' then
@@ -747,7 +761,7 @@ begin
 end process;
 
 ------------------------------------------------------------------------------
--- Селектор
+-- Selector
 mux <= ((divmmc_amap or divmmc_e3reg(7)) and key_f(6)) & cpu0_a_bus(15 downto 13);
 
 process (mux, port_7ffd_reg, port_dffd_reg, port_0000_reg, ram_a_bus, cpu0_a_bus, dos_act, port_1ffd_reg, divmmc_e3reg, key_f)
@@ -830,9 +844,9 @@ zc_rd 		<= '1' when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus(7 down
 vs_wr 		<= '1' when (cpu0_iorq_n = '0' and cpu0_wr_n = '0' and cpu0_a_bus(7 downto 1) = "0000010") else '0';
 
 -------------------------------------------------------------------------------
--- Функциональные клавиши Fx
+-- Function keys Fx
 
--- F3 = 3.5/7.0MHz, F4 = CPU RESET, F5 = NMI, F6 = divMMC, F7 = рамка, F8 = перефирийный контроллер, F9 = turbo 7.0/14.0MHz, F11 = soundrive, F12 = видео режим 0: Spectrum; 1: Pentagon;
+-- F3 = 3.5/7.0MHz, F4 = CPU RESET, F5 = NMI, F6 = divMMC, F7 = canvas, F8 = peripheral controller, F9 = turbo 7.0/14.0MHz, F11 = soundrive, F12 = video mode 0: Spectrum; 1: Pentagon;
 process (clk_bus, key, kb_f_bus, key_f)
 begin
 	if (clk_bus'event and clk_bus = '1') then
@@ -844,7 +858,7 @@ begin
 end process;
 
 -------------------------------------------------------------------------------
--- Шина данных CPU0
+-- Data bus CPU0
 process (selector, rom_do_bus, SRAM_D, sdr_do_bus, spi_do_bus, spi_busy, rtc_do_bus, mc146818_do_bus, kb_do_bus, zc_do_bus, ms_but_bus, ms_x_bus, ms_y_bus, kb_joy_bus, ssg_cn0_bus, ssg_cn1_bus, uart_tx_busy, CBUS4, uart_rx_error,
 		 uart_rx_avail, uart_do_bus, vs_do_bus, gs_do_bus, divmmc_do, port_7ffd_reg, port_dffd_reg)
 begin
@@ -872,7 +886,7 @@ begin
 		when "10100" => cpu0_di_bus <= divmmc_do;
 		when "10101" => cpu0_di_bus <= port_7ffd_reg;
 		when "10110" => cpu0_di_bus <= port_dffd_reg;
---		when "10111" => cpu0_di_bus <= vid_attr;
+		when "10111" => cpu0_di_bus <= vid_attr;
 		when others  => cpu0_di_bus <= (others => '1');
 	end case;
 end process;
@@ -884,23 +898,23 @@ selector <= "00000" when (cpu0_mreq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus(1
 			"00100" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus( 7 downto 0) = X"03") else 											-- M25P40
 			"00101" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus( 7 downto 5) = "100" and cpu0_a_bus(3 downto 0) = "1100") else 		-- PCF8583
 			"00110" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and port_bff7 = '1' and port_eff7_reg(7) = '1') else 								-- MC146818A
-			"00111" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus( 7 downto 0) = X"FE") else 											-- Клавиатура, порт xxFE
+			"00111" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus( 7 downto 0) = X"FE") else 											-- Keyboard, port xxFE
 			"01000" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus( 7 downto 6) = "01" and cpu0_a_bus(4 downto 0) = "10111") else 		-- Z-Controller
 			"01001" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus(15 downto 0) = X"FADF" and ms_present = '1' and ms_left = '0') else 	-- Mouse Port FADF = <Z>1<MB><LB><RB>
 			"01010" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus(15 downto 0) = X"FADF" and ms_present = '1' and ms_left = '1') else
 			"01011" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus(15 downto 0) = X"FBDF" and ms_present = '1') else					-- Port FBDF = <X>
 			"01100" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus(15 downto 0) = X"FFDF" and ms_present = '1') else					-- Port FFDF = <Y>
-			"01101" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus( 7 downto 0) = X"1F" and dos_act = '0' and kb_num = '1') else 		-- Joystick, порт xx1F
+			"01101" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus( 7 downto 0) = X"1F" and dos_act = '0' and kb_num = '1') else 		-- Joystick, port xx1F
 			"01110" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus(15 downto 0) = X"FFFD" and ssg_sel = '0') else 						-- TurboSound
 			"01111" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus(15 downto 0) = X"FFFD" and ssg_sel = '1') else
 			"10000" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus( 7 downto 0) = X"AC") else											-- UART
 			"10001" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus( 7 downto 0) = X"BC") else
 			"10010" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus( 7 downto 1) = "0000010") else 										-- VS1053
 			"10011" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus( 7 downto 4) = "1011" and cpu0_a_bus(2 downto 0) = "011") else		-- General Sound
-			"10100" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus( 7 downto 0) = X"EB" and key_f(6) = '1') else						-- DivMMC, порт xxEB
-			"10101" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus(15 downto 0) = X"7FFD") else											-- чтение порта 7FFD
-			"10110" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus(15 downto 0) = X"DFFD") else											-- чтение порта DFFD
---			"10111" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus( 7 downto 0) = X"FF" and vid_border = '1') else						-- порт атрибутов #FF
+			"10100" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus( 7 downto 0) = X"EB" and key_f(6) = '1') else						-- DivMMC, port xxEB
+			"10101" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus(15 downto 0) = X"7FFD") else											-- read port 7FFD
+			"10110" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus(15 downto 0) = X"DFFD") else											-- read port DFFD
+			"10111" when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus( 7 downto 0) = X"FF" and vid_border = '1') else						-- attributes port #FF
 			(others => '1');
 
 -------------------------------------------------------------------------------
@@ -926,7 +940,7 @@ begin
 end process;
 
 -------------------------------------------------------------------------------
--- Периферийный контроллер
+-- Peripheral controller
 
 -- IO
 process (reset, clk_bus, cntr_rd, cntr_io_flag)

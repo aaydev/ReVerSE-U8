@@ -29,7 +29,7 @@ cd boards\reverse_u8\firmwares\loader\rom
 del *.hex
 %binhex% 82.rom 82.hex
 %binhex% 86.rom 86.hex
-%binhex% esxmmc.rom esxmmc.hex
+%binhex% esxmmc089.rom esxmmc.hex
 %binhex% gs105a.rom gs105a.hex
 %binhex% hegluk_19.rom hegluk_19.hex
 %binhex% trdos_605e.rom trdos_605e.hex

@@ -1,0 +1,66 @@
+# ==========================================================
+# Intel Quartus Prime / Quartus II
+# ==========================================================
+
+# Generated project service folders
+db/
+incremental_db/
+output_files/
+greybox_tmp/
+hc_output/
+scaler/
+.qsys_edit/
+sopc_builder/
+
+# Generated simulation folders
+# If your simulation/ directory contains custom testbenches,
+# it is better not to ignore the entire folder — only ignore
+# the generated subdirectories.
+simulation/modelsim/
+simulation/questa/
+simulation/riviera/
+simulation/activehdl/
+simulation/vcs/
+
+# Workspace / local state files
+*.qws
+*.cdf
+*.qmsg
+*.smsg
+
+# Reports and auxiliary build files
+*.rpt
+*.summary
+*.done
+*.pin
+*.map
+*.jdi
+*.sld
+
+# Firmware / programming files
+*.sof
+*.pof
+*.jic
+*.svf
+
+# Logs, backups, temporary files
+*.log
+*.bak
+*.orig
+*.tmp
+*.swp
+*~
+
+# ModelSim / Questa
+transcript
+*.wlf
+wlft*
+work/
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+
+# Other
+*.hex
+*.bin

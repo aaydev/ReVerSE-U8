@@ -175,23 +175,24 @@ set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
 set_global_assignment -name TIMEQUEST_REPORT_SCRIPT u8ep3c.tcl
+set_global_assignment -name OPTIMIZE_HOLD_TIMING "ALL PATHS"
+set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON
+set_global_assignment -name SEED 4
+set_global_assignment -name OPTIMIZE_POWER_DURING_FITTING "EXTRA EFFORT"
+set_global_assignment -name VHDL_FILE "../../../cores/z80-silicon-rtl/Z80s.vhd"
+set_global_assignment -name VERILOG_FILE "../../../cores/z80-silicon-rtl/Z80.v"
+set_global_assignment -name VERILOG_FILE "../../../cores/z80-silicon-rtl/Registers.v"
+set_global_assignment -name VERILOG_FILE "../../../cores/z80-silicon-rtl/Register_selector.v"
 set_global_assignment -name VHDL_FILE ../rtl/ram/altram2.vhd
 set_global_assignment -name VHDL_FILE ../rtl/ram/altram0.vhd
 set_global_assignment -name VHDL_FILE ../../../cores/divmmc/divmmc.vhd
 set_global_assignment -name SDC_FILE u8ep3c.sdc
 set_global_assignment -name VHDL_FILE ../rtl/pll/altpll0.vhd
 set_global_assignment -name VHDL_FILE ../../../cores/txt/txt.vhd
-set_global_assignment -name VHDL_FILE ../../../cores/t80/T80s.vhd
 set_global_assignment -name VHDL_FILE ../rtl/u8speccy.vhd
 set_global_assignment -name VHDL_FILE ../../../cores/video/video.vhd
 set_global_assignment -name VHDL_FILE ../../../cores/uart/uart.vhd
 set_global_assignment -name VHDL_FILE ../../../cores/turbosound/turbosound.vhd
-set_global_assignment -name VHDL_FILE ../../../cores/t80/T80a.vhd
-set_global_assignment -name VHDL_FILE ../../../cores/t80/T80_Reg.vhd
-set_global_assignment -name VHDL_FILE ../../../cores/t80/T80_Pack.vhd
-set_global_assignment -name VHDL_FILE ../../../cores/t80/T80_MCode.vhd
-set_global_assignment -name VHDL_FILE ../../../cores/t80/T80_ALU.vhd
-set_global_assignment -name VHDL_FILE ../../../cores/t80/T80.vhd
 set_global_assignment -name VHDL_FILE ../../../cores/ssg/ay8910.vhd
 set_global_assignment -name VHDL_FILE ../../../cores/spi/vs1053.vhd
 set_global_assignment -name VHDL_FILE ../../../cores/spi/spi.vhd
@@ -212,8 +213,4 @@ set_global_assignment -name VHDL_FILE ../../../cores/n80/n80.vhd
 set_global_assignment -name VHDL_FILE ../../../cores/sdram/sdram.vhd
 set_global_assignment -name VHDL_FILE ../../../cores/i2c/i2c.vhd
 set_global_assignment -name VHDL_FILE ../../../cores/cntr/cntr.vhd
-set_global_assignment -name OPTIMIZE_HOLD_TIMING "ALL PATHS"
-set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON
-set_global_assignment -name SEED 4
-set_global_assignment -name OPTIMIZE_POWER_DURING_FITTING "EXTRA EFFORT"
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

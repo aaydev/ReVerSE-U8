@@ -229,7 +229,7 @@ str01:      db 1, %01111000, " -= REVERSE-U8 =-                          U8-Spec
 Build:      db "261007"
             db " ", 0
 
-str02a:     db 1, %00000110, "CPU: T80 V350, ESXDOS V0.8.9", 0
+str02a:     db 1, %00000110, "CPU: Z80 NMOS Silicon-to-RTL 0.9.1a, ESXDOS V0.8.9", 0
 str02:      db 1, %00000110, "IO= ....h Data= ..h", 0
 
 strgradient:

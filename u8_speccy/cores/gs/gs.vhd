@@ -137,12 +137,7 @@ begin
     ----------------------------------------------------------------------------
     -- Z80 CPU Instance
     ----------------------------------------------------------------------------
-    z80_unit: entity work.t80s
-        generic map (
-            Mode     => 0,  -- 0 => Z80, 1 => Fast Z80, 2 => 8080, 3 => GB
-            T2Write  => 1,  -- 0 => WR_n active in T3, 1 => WR_n active in T2
-            IOWait   => 1   -- 0 => Single cycle I/O, 1 => Std I/O cycle
-        )
+    z80_unit: entity work.Z80s
         port map (
             RESET_n     => not RESET,
             --CLK_n     => not CLKGS,
@@ -161,13 +156,13 @@ begin
             BUSAK_n     => open,
             A           => cpu_a_bus,
             DI          => cpu_di_bus,
-            DO          => cpu_do_bus,
-            SavePC      => open,
-            SaveINT     => open,
-            RestorePC   => (others => '1'),
-            RestoreINT  => (others => '1'),
-            RestorePC_n => '1'
-        );
+            DO          => cpu_do_bus);
+            --SavePC      => open,
+            --SaveINT     => open,
+            --RestorePC   => (others => '1'),
+            --RestoreINT  => (others => '1'),
+            --RestorePC_n => '1'
+        --);
 
     ----------------------------------------------------------------------------
     -- Interrupt Timer Counter

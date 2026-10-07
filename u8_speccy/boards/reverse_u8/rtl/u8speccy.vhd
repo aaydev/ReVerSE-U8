@@ -343,12 +343,8 @@ port map (
 	c2		=> clk_interface,	-- 21.0 MHz
 	c3		=> clk_sdr);		-- 84.0 MHz
 
--- Zilog Z80A CPU
-U1: entity work.T80s
-generic map (
-	Mode		=> 0,	-- 0 => Z80, 1 => Fast Z80, 2 => 8080, 3 => GB
-	T2Write		=> 1,	-- 0 => WR_n active in T3, 1 => WR_n active in T2
-	IOWait		=> 1)	-- 0 => Single cycle I/O, 1 => Std I/O cycle
+-- Zilog Z80A CPU (Verilog core, see cores/rtl)
+U1: entity work.Z80s
 port map(
 	RESET_n		=> cpu0_reset_n,
 	--CLK_n		=> cpuclk,
@@ -367,12 +363,12 @@ port map(
 	BUSAK_n		=> open,
 	A			=> cpu0_a_bus,
 	DI			=> cpu0_di_bus,
-	DO			=> cpu0_do_bus,
-	SavePC      => open,
-	SaveINT     => open,
-	RestorePC   => (others => '1'),
-	RestoreINT  => (others => '1'),
-	RestorePC_n => '1');
+	DO			=> cpu0_do_bus);
+	--SavePC      => open,
+	--SaveINT     => open,
+	--RestorePC   => (others => '1'),
+	--RestoreINT  => (others => '1'),
+	--RestorePC_n => '1');
 
 -- Video Spectrum/Pentagon
 U2: entity work.video

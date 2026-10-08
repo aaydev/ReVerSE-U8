@@ -11,189 +11,162 @@
 ;
 ; -- #BF W/R: txt0_addr1 Low byte of text video buffer start address
 ; -- #7F W/R: txt0_addr2 High byte of text video buffer start address
+; -------------------------------------------------------------------------------
+; Constants
+; -------------------------------------------------------------------------------
 
 BUFFER          EQU #2000       ; Start address of text buffer
+COLS            EQU 80
+ROWS            EQU 30
+BYTES_PER_ROW   EQU (COLS * 2)
+TEXT_BYTES      EQU (COLS * ROWS * 2)
+
 VARIABLES       EQU #003A       ; Start address of variables
+print_color     EQU (VARIABLES + 0)
 
-; Variables
-print_color     EQU VARIABLES+0
-print_addr      EQU VARIABLES+1
+CTRL_SET_COLOR  EQU #01
 
-; I/O Ports
-port_addr_low   EQU %11111110
-port_addr_hi    EQU %11111101
-port_data       EQU %11111011
+; I/O ports
+port_addr_low   EQU #FE         ; %11111110
+port_addr_hi    EQU #FD         ; %11111101
+port_data       EQU #FB         ; %11111011
 port_status     EQU %11110111   ; IOFLAG & "111111" & SEL
-
 port_txt_addr1  EQU #BF
 port_txt_addr2  EQU #7F
 
+; Screen positions for live hex values
+IO_POS          EQU (BUFFER + (BYTES_PER_ROW * 28) + (4 * 2))
+DATA_POS        EQU (BUFFER + (BYTES_PER_ROW * 28) + (16 * 2))
+
+; Attributes
+ATTR_HEADER     EQU %01111000
+ATTR_INFO       EQU %00000110
+ATTR_TITLE      EQU %01000111
+ATTR_ITEM       EQU %00000111
+
 ; =============================================================================
-; Reset Vector
+; Reset vector
 ; =============================================================================
+
         ORG #0000
 StartProg:
         di
-        ld a, #00
+        xor a
         out (port_txt_addr1), a
         ld a, #10
         out (port_txt_addr2), a
         jp Test
 
 ; =============================================================================
-; INT Handler
+; INT vector
 ; =============================================================================
+
         ORG #0038
 Int:
         reti
 
 ; =============================================================================
-; NMI Handler
+; NMI vector
 ; =============================================================================
+
         ORG #0066
 Nmi:
         retn
 
 ; =============================================================================
-; Main Test Routine
+; Main
 ; =============================================================================
+
 Test:
         ld sp, #3FFF
 
         call Cls
-
-        ld de, str01
-        ld hl, BUFFER
-        call PrintStr
-
-        ld de, strgradient
-        ld hl, BUFFER + 160 * 29
-        call PrintStr
-
-        ld de, strTitle
-        ld hl, BUFFER + 160 * 2
-        call PrintStr
-
-        ld de, str0301
-        ld hl, BUFFER + 160 * 4
-        call PrintStr
-
-        ld de, str0302
-        ld hl, BUFFER + 160 * 5
-        call PrintStr
-
-        ld de, str0303
-        ld hl, BUFFER + 160 * 6
-        call PrintStr
-
-        ld de, str0304
-        ld hl, BUFFER + 160 * 7
-        call PrintStr
-
-        ld de, str0305
-        ld hl, BUFFER + 160 * 8
-        call PrintStr
-
-        ld de, str0306
-        ld hl, BUFFER + 160 * 9
-        call PrintStr
-
-        ld de, str0307
-        ld hl, BUFFER + 160 * 10
-        call PrintStr
-
-        ld de, str0308
-        ld hl, BUFFER + 160 * 11
-        call PrintStr
-
-        ld de, str0309
-        ld hl, BUFFER + 160 * 12
-        call PrintStr
-
-        ld de, str0310
-        ld hl, BUFFER + 160 * 13
-        call PrintStr
-
-        ld de, str0311
-        ld hl, BUFFER + 160 * 15
-        call PrintStr
-
-        ld de, str0312
-        ld hl, BUFFER + 160 * 16
-        call PrintStr
-
-        ld de, str02a
-        ld hl, BUFFER + 160 * 27
-        call PrintStr
-
-        ld de, str02
-        ld hl, BUFFER + 160 * 28
-        call PrintStr
+        call DrawScreen
 
 test1:
+        ld hl, IO_POS
+
         in a, (port_addr_hi)
-        ld hl, BUFFER + 160 * 28 + 4 * 2
         call ByteToHexStr
 
         in a, (port_addr_low)
         call ByteToHexStr
 
+        ld hl, DATA_POS
+
         in a, (port_data)
-        ld hl, BUFFER + 160 * 28 + 16 * 2
         call ByteToHexStr
 
-        jp test1
+        jr test1
 
 ; =============================================================================
-; Clear Text Video Buffer
+; Clear text video buffer
+; char = #00, attr = #07
 ; =============================================================================
+
 Cls:
-        ld de, #0700
-        ld bc, #0960
         ld hl, BUFFER
-cls1:
-        ld (hl), e
+        ld (hl), #00
         inc hl
-        ld (hl), d
-        inc hl
-        dec bc
-        ld a, c
-        or b
-        jr nz, cls1
+        ld (hl), #07
+        dec hl
+
+        ld de, BUFFER + 2
+        ld bc, TEXT_BYTES - 2
+        ldir
         ret
 
 ; =============================================================================
-; Print String to Text Buffer
+; Print string to text buffer
+; Input:
+;   DE = string address
+;   HL = screen buffer address
+;
+; Control byte CTRL_SET_COLOR: next byte is attribute.
 ; =============================================================================
+
 PrintStr:
         ld a, (print_color)
-printStr2:
         ld c, a
-printStr3:
+
+PrintStrLoop:
         ld a, (de)
         or a
-        ret z
+        jr z, PrintStrDone
+
         inc de
-        cp #01
-        jr z, printStr1
+        cp CTRL_SET_COLOR
+        jr z, PrintStrSetColor
+
         ld (hl), a
         inc hl
         ld (hl), c
         inc hl
-        jr printStr3
-printStr1:
+        jr PrintStrLoop
+
+PrintStrSetColor:
         ld a, (de)
-        ld (print_color), a
         inc de
-        jr printStr2
+        ld c, a
+        jr PrintStrLoop
+
+PrintStrDone:
+        ld a, c
+        ld (print_color), a
+        ret
 
 ; =============================================================================
-; Convert Byte to HEX String
+; Convert byte in A to two HEX ASCII characters
+; Input:
+;   A  = byte
+;   HL = screen buffer address
+;
+; Writes only characters, skips attribute bytes.
 ; =============================================================================
-; Input:  A  = byte value
-;         HL = destination buffer address
+
 ByteToHexStr:
         ld b, a
+
         rrca
         rrca
         rrca
@@ -206,6 +179,7 @@ ByteToHexStr:
         ld (hl), a
         inc hl
         inc hl
+
         ld a, b
         and #0F
         add a, #90
@@ -217,51 +191,160 @@ ByteToHexStr:
         inc hl
         ret
 
-; Attribute format:
-; b2..0 = ink
-; b5..3 = paper
-; b6    = bright
-; b7    = unused
+; =============================================================================
+; Static screen layout table
+; Format: dw screen_address, string_address
+; =============================================================================
+
+ScreenTable:
+        dw BUFFER + (BYTES_PER_ROW * 0),  str01
+        dw BUFFER + (BYTES_PER_ROW * 29), strgradient
+        dw BUFFER + (BYTES_PER_ROW * 2),  strTitle
+
+        dw BUFFER + (BYTES_PER_ROW * 4),  str0301
+        dw BUFFER + (BYTES_PER_ROW * 5),  str0302
+        dw BUFFER + (BYTES_PER_ROW * 6),  str0303
+        dw BUFFER + (BYTES_PER_ROW * 7),  str0304
+        dw BUFFER + (BYTES_PER_ROW * 8),  str0305
+        dw BUFFER + (BYTES_PER_ROW * 9),  str0306
+        dw BUFFER + (BYTES_PER_ROW * 10), str0307
+        dw BUFFER + (BYTES_PER_ROW * 11), str0308
+        dw BUFFER + (BYTES_PER_ROW * 12), str0309
+        dw BUFFER + (BYTES_PER_ROW * 13), str0310
+
+        dw BUFFER + (BYTES_PER_ROW * 15), str0311
+        dw BUFFER + (BYTES_PER_ROW * 16), str0312
+
+        dw BUFFER + (BYTES_PER_ROW * 27), str02a
+        dw BUFFER + (BYTES_PER_ROW * 28), str02
+ScreenTableEnd:
+
+SCREEN_ITEMS EQU (ScreenTableEnd - ScreenTable) / 4
+
+; =============================================================================
+; Draw all strings from ScreenTable
+; =============================================================================
+
+DrawScreen:
+        ld hl, ScreenTable
+        ld b, SCREEN_ITEMS
+
+DrawScreenLoop:
+        ; Read destination address
+        ld e, (hl)
+        inc hl
+        ld d, (hl)
+        inc hl
+        push de                  ; save destination
+
+        ; Read string address
+        ld e, (hl)
+        inc hl
+        ld d, (hl)
+        inc hl                   ; HL = next table entry
+
+        ; Swap: HL = destination, [SP] = table pointer
+        ex (sp), hl
+
+        push bc
+        call PrintStr
+        pop bc
+
+        pop hl                   ; restore table pointer
+        djnz DrawScreenLoop
+
+        ret
+
+; =============================================================================
+; String data
+; =============================================================================
 
 ;        00000000001111111111222222222233333333334444444444555555555566666666667777777777
 ;        01234567890123456789012345678901234567890123456789012345678901234567890123456789
-str01:      db 1, %01111000, " -= REVERSE-U8 =-                          U8-Speccy v.0.8.9 build date: "
-Build:      db "261007"
-            db " ", 0
 
-str02a:     db 1, %00000110, "CPU: T80 V350, ESXDOS V0.8.9", 0
-str02:      db 1, %00000110, "IO= ....h Data= ..h", 0
+str01:
+        db CTRL_SET_COLOR, ATTR_HEADER
+        db " -= REVERSE-U8 =-                          U8-Speccy v.0.8.9 build date: "
+Build:
+        db "261008"
+        db " ", 0
+
+str02a:
+        db CTRL_SET_COLOR, ATTR_INFO
+        db "CPU: T80 V351, ESXDOS V0.8.9", 0
+
+str02:
+        db CTRL_SET_COLOR, ATTR_INFO
+        db "IO= ....h Data= ..h", 0
 
 strgradient:
-            db 1, %00000000, "     "
-            db 1, %01000000, "     "
-            db 1, %00001000, "     "
-            db 1, %01001000, "     "
-            db 1, %00010000, "     "
-            db 1, %01010000, "     "
-            db 1, %00011000, "     "
-            db 1, %01011000, "     "
-            db 1, %00100000, "     "
-            db 1, %01100000, "     "
-            db 1, %00101000, "     "
-            db 1, %01101000, "     "
-            db 1, %00110000, "     "
-            db 1, %01110000, "     "
-            db 1, %00111000, "     "
-            db 1, %01111000, "     ", 0
+        db CTRL_SET_COLOR, %00000000, "     "
+        db CTRL_SET_COLOR, %01000000, "     "
+        db CTRL_SET_COLOR, %00001000, "     "
+        db CTRL_SET_COLOR, %01001000, "     "
+        db CTRL_SET_COLOR, %00010000, "     "
+        db CTRL_SET_COLOR, %01010000, "     "
+        db CTRL_SET_COLOR, %00011000, "     "
+        db CTRL_SET_COLOR, %01011000, "     "
+        db CTRL_SET_COLOR, %00100000, "     "
+        db CTRL_SET_COLOR, %01100000, "     "
+        db CTRL_SET_COLOR, %00101000, "     "
+        db CTRL_SET_COLOR, %01101000, "     "
+        db CTRL_SET_COLOR, %00110000, "     "
+        db CTRL_SET_COLOR, %01110000, "     "
+        db CTRL_SET_COLOR, %00111000, "     "
+        db CTRL_SET_COLOR, %01111000, "     ", 0
 
-strTitle:   db 1, %01000111, "CONTROL KEYS", 0
-str0301:    db 1, %00000111, " F3:  Clock #1 (7/3.5 MHz)", 0
-str0302:    db 1, %00000111, " F4:  CPU Reset", 0
-str0303:    db 1, %00000111, " F5:  NMI", 0
-str0304:    db 1, %00000111, " F6:  divMMC (off/on)", 0
-str0305:    db 1, %00000111, " F7:  Frame (off/on)", 0
-str0306:    db 1, %00000111, " F8:  POST", 0
-str0307:    db 1, %00000111, " F9:  Clock #2 (14/7 MHz)", 0
-str0308:    db 1, %00000111, " F10: GS Reset", 0
-str0309:    db 1, %00000111, " F11: SounDrive", 0
-str0310:    db 1, %00000111, " F12: Video: (Spectrum/Pentagon)", 0
-str0311:    db 1, %00000111, " Scroll Lock: Hard Reset", 0
-str0312:    db 1, %00000111, " Num. Lock: Kempston", 0
+strTitle:
+        db CTRL_SET_COLOR, ATTR_TITLE
+        db "CONTROL KEYS", 0
+
+str0301:
+        db CTRL_SET_COLOR, ATTR_ITEM
+        db " F3:  Clock #1 (7/3.5 MHz)", 0
+
+str0302:
+        db CTRL_SET_COLOR, ATTR_ITEM
+        db " F4:  CPU Reset", 0
+
+str0303:
+        db CTRL_SET_COLOR, ATTR_ITEM
+        db " F5:  NMI", 0
+
+str0304:
+        db CTRL_SET_COLOR, ATTR_ITEM
+        db " F6:  divMMC (off/on)", 0
+
+str0305:
+        db CTRL_SET_COLOR, ATTR_ITEM
+        db " F7:  Frame (off/on)", 0
+
+str0306:
+        db CTRL_SET_COLOR, ATTR_ITEM
+        db " F8:  POST", 0
+
+str0307:
+        db CTRL_SET_COLOR, ATTR_ITEM
+        db " F9:  Clock #2 (14/7 MHz)", 0
+
+str0308:
+        db CTRL_SET_COLOR, ATTR_ITEM
+        db " F10: GS Reset", 0
+
+str0309:
+        db CTRL_SET_COLOR, ATTR_ITEM
+        db " F11: SounDrive", 0
+
+str0310:
+        db CTRL_SET_COLOR, ATTR_ITEM
+        db " F12: Video: (Spectrum/Pentagon)", 0
+
+str0311:
+        db CTRL_SET_COLOR, ATTR_ITEM
+        db " Scroll Lock: Hard Reset", 0
+
+str0312:
+        db CTRL_SET_COLOR, ATTR_ITEM
+        db " Num. Lock: Kempston", 0
 
         savebin "rom.bin", StartProg, 16384

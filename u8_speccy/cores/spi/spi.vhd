@@ -4,6 +4,7 @@
 -- V0.1.0   31.01.2011  First version
 -- V0.2.0   31.08.2013  Rewritten controller. Independent operation from system clock
 -- V0.2.1   01.09.2013  Fixed controller
+-- V0.3.0   14.01.2017  Refactored: removed internal CS control, added I_/O_ port prefixes
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -12,18 +13,16 @@ use IEEE.std_logic_unsigned.all;
 
 entity spi is
     port (
-        RESET   : in  std_logic;                     -- 1 = active reset
-        CLK     : in  std_logic;                     -- Controller system clock
-        SCK     : in  std_logic;                     -- SPI interface clock
-        A       : in  std_logic;                     -- Address: 0 = data register; 1 = control register
-        DI      : in  std_logic_vector(7 downto 0);  -- Data 8 bits, input
-        DO      : out std_logic_vector(7 downto 0);  -- Data 8 bits, output
-        WR      : in  std_logic;                     -- 1 = write data to data or control register
-        BUSY    : out std_logic;                     -- 1 = transfer in progress; 0 = completed
-        CS_n    : out std_logic;                     -- Chip select (active low)
-        SCLK    : out std_logic;                     -- SPI clock output
-        MOSI    : out std_logic;                     -- Master Out Slave In
-        MISO    : in  std_logic                      -- Master In Slave Out
+        I_RESET : in  std_logic;                     -- 1 = active reset
+        I_CLK   : in  std_logic;                     -- Controller system clock
+        I_SCK   : in  std_logic;                     -- SPI interface clock
+        I_DI    : in  std_logic_vector(7 downto 0);  -- Data 8 bits, input
+        O_DO    : out std_logic_vector(7 downto 0);  -- Data 8 bits, output
+        I_WR    : in  std_logic;                     -- 1 = write data to data register
+        O_BUSY  : out std_logic;                     -- 1 = transfer in progress; 0 = completed
+        O_SCLK  : out std_logic;                     -- SPI clock output
+        O_MOSI  : out std_logic;                     -- Master Out Slave In
+        I_MISO  : in  std_logic                      -- Master In Slave Out
     );
 end entity spi;
 
@@ -34,7 +33,6 @@ architecture rtl of spi is
     -------------------------------------------------------------------------
     signal cnt        : std_logic_vector(2 downto 0) := "000";       -- Bit counter
     signal shift_reg  : std_logic_vector(7 downto 0) := "11111111";  -- Shift register
-    signal cs         : std_logic := '1';
     signal buffer_reg : std_logic_vector(7 downto 0) := "11111111";
     signal state      : std_logic := '0';
     signal start      : std_logic := '0';
@@ -42,29 +40,15 @@ architecture rtl of spi is
 begin
 
     -------------------------------------------------------------------------
-    -- Chip Select Register (SD CS)
-    -------------------------------------------------------------------------
-    process (RESET, CLK, A, WR, DI)
-    begin
-        if (RESET = '1') then
-            cs <= '1';
-        elsif (CLK'event and CLK = '1') then
-            if (WR = '1' and A = '1') then
-                cs <= DI(0);
-            end if;
-        end if;
-    end process;
-
-    -------------------------------------------------------------------------
     -- Data Buffer Register
     -------------------------------------------------------------------------
-    process (RESET, CLK, A, WR, DI)
+    process (I_RESET, I_CLK, I_WR, I_DI)
     begin
-        if (RESET = '1') then
+        if (I_RESET = '1') then
             buffer_reg <= (others => '1');
-        elsif (CLK'event and CLK = '1') then
-            if (WR = '1' and A = '0') then
-                buffer_reg <= DI;
+        elsif (I_CLK'event and I_CLK = '1') then
+            if (I_WR = '1') then
+                buffer_reg <= I_DI;
             end if;
         end if;
     end process;
@@ -72,12 +56,12 @@ begin
     -------------------------------------------------------------------------
     -- Start Flag Generation
     -------------------------------------------------------------------------
-    process (RESET, CLK, A, WR, state)
+    process (I_RESET, I_CLK, I_WR, state)
     begin
-        if (RESET = '1' or state = '1') then
+        if (I_RESET = '1' or state = '1') then
             start <= '0';
-        elsif (CLK'event and CLK = '1') then
-            if (WR = '1' and A = '0') then
+        elsif (I_CLK'event and I_CLK = '1') then
+            if (I_WR = '1') then
                 start <= '1';
             end if;
         end if;
@@ -86,14 +70,14 @@ begin
     -------------------------------------------------------------------------
     -- SPI Shift Register State Machine (SCK domain)
     -------------------------------------------------------------------------
-    process (RESET, SCK, start, buffer_reg)
+    process (I_RESET, I_SCK, start, buffer_reg)
     begin
-        if (RESET = '1') then
+        if (I_RESET = '1') then
             state     <= '0';
             cnt       <= "000";
             shift_reg <= "11111111";
 
-        elsif (SCK'event and SCK = '0') then
+        elsif (I_SCK'event and I_SCK = '0') then
             case state is
                 when '0' =>
                     if (start = '1') then
@@ -106,7 +90,7 @@ begin
                     if (cnt = "111") then
                         state <= '0';
                     end if;
-                    shift_reg <= shift_reg(6 downto 0) & MISO;
+                    shift_reg <= shift_reg(6 downto 0) & I_MISO;
                     cnt       <= cnt + 1;
 
                 when others => null;
@@ -117,10 +101,9 @@ begin
     -------------------------------------------------------------------------
     -- Output Assignments
     -------------------------------------------------------------------------
-    BUSY <= state;
-    DO   <= shift_reg;
-    CS_n <= cs;
-    MOSI <= shift_reg(7);
-    SCLK <= SCK when state = '1' else '0';
+    O_BUSY <= state;
+    O_DO   <= shift_reg;
+    O_MOSI <= shift_reg(7);
+    O_SCLK <= I_SCK when state = '1' else '0';
 
 end architecture rtl;

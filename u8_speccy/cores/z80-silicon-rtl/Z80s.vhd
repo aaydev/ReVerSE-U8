@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Z80 CPU core wrapper (Verilog core)
+-- Z80 CPU core wrapper (Verilog core with savestate and T2Write support)
 --------------------------------------------------------------------------------
 -- The CPU itself is the RTL reconstruction of the NMOS Z80 written in Verilog:
 --
@@ -23,98 +23,116 @@
 
 library IEEE;
 use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
 
 entity Z80s is
+    generic (
+        Mode    : integer := 0;   -- 0 => Z80, 1 => Fast Z80, 2 => 8080, 3 => GB
+        T2Write : integer := 1;   -- 0 => WR_n active in T3, 1 => WR_n active in T2
+        IOWait  : integer := 0    -- 0 => Single cycle I/O, 1 => Std I/O cycle
+    );
     port (
-        RESET_n : in  std_logic;                     -- 0 = reset
-        CLK     : in  std_logic;                     -- CPU clock
-        WAIT_n  : in  std_logic := '1';              -- 0 = insert a memory wait state
-        INT_n   : in  std_logic := '1';              -- maskable interrupt request
-        NMI_n   : in  std_logic := '1';              -- non maskable interrupt request
-        BUSRQ_n : in  std_logic := '1';              -- bus request
-        M1_n    : out std_logic;                     -- opcode fetch cycle (M1)
-        MREQ_n  : out std_logic;                     -- memory request
-        IORQ_n  : out std_logic;                     -- I/O request
-        RD_n    : out std_logic;                     -- read
-        WR_n    : out std_logic;                     -- write
-        RFSH_n  : out std_logic;                     -- refresh
-        HALT_n  : out std_logic;                     -- halted
-        BUSAK_n : out std_logic;                     -- bus acknowledge
-        A       : out std_logic_vector(15 downto 0);
-        DI      : in  std_logic_vector(7 downto 0);
-        DO      : out std_logic_vector(7 downto 0)
+        RESET_n     : in  std_logic;
+        CLK         : in  std_logic;
+        WAIT_n      : in  std_logic := '1';
+        INT_n       : in  std_logic := '1';
+        NMI_n       : in  std_logic := '1';
+        BUSRQ_n     : in  std_logic := '1';
+        M1_n        : out std_logic;
+        MREQ_n      : out std_logic;
+        IORQ_n      : out std_logic;
+        RD_n        : out std_logic;
+        WR_n        : out std_logic;
+        RFSH_n      : out std_logic;
+        HALT_n      : out std_logic;
+        BUSAK_n     : out std_logic;
+        A           : out std_logic_vector(15 downto 0);
+        DI          : in  std_logic_vector(7 downto 0);
+        DO          : out std_logic_vector(7 downto 0);
+        SavePC      : out std_logic_vector(15 downto 0);
+        SaveINT     : out std_logic_vector(7 downto 0);
+        RestorePC   : in  std_logic_vector(15 downto 0) := (others => '0');
+        RestoreINT  : in  std_logic_vector(7 downto 0)  := (others => '0');
+        RestorePC_n : in  std_logic := '1'
     );
 end entity Z80s;
 
 architecture rtl of Z80s is
 
-    signal mreq   : std_logic;
-    signal iorq   : std_logic;
-    signal rd     : std_logic;
-    signal wr     : std_logic;
-    signal rfsh   : std_logic;
-    signal m1     : std_logic;
-    signal halt   : std_logic;
-    signal busack : std_logic;
+    signal mreq, iorq, rd, wr, rfsh, m1, halt, busack : std_logic;
+    signal save_pc    : std_logic_vector(15 downto 0);
+    signal save_int   : std_logic_vector(7 downto 0);
+    signal restore_en : std_logic;
 
-    -- Zilog Z80 CPU, Verilog core (Z80.v)
-    -- A component declaration is used instead of "entity work.Z80": Quartus binds
-    -- the Verilog module by name at elaboration time, so the HDL file order in the
-    -- project does not matter (direct entity instantiation would require the
-    -- Verilog sources to be analysed before this VHDL file - error 10481).
     component Z80 is
+        generic (
+            T2Write : integer := 1
+        );
         port (
-            clk        : in  std_logic;
-            data_in    : in  std_logic_vector(7 downto 0);
-            data_out   : out std_logic_vector(7 downto 0);
-            adr        : out std_logic_vector(15 downto 0);
-            mreq       : out std_logic;
-            iorq       : out std_logic;
-            rd         : out std_logic;
-            wr         : out std_logic;
-            data_z     : out std_logic;
-            adr_z      : out std_logic;
-            controls_z : out std_logic;
-            rfsh       : out std_logic;
-            p_m1       : out std_logic;
-            halt       : out std_logic;
-            p_wait     : in  std_logic;
-            p_int      : in  std_logic;
-            nmi        : in  std_logic;
-            reset      : in  std_logic;
-            busrq      : in  std_logic;
-            busack     : out std_logic
+            clk         : in  std_logic;
+            data_in     : in  std_logic_vector(7 downto 0);
+            data_out    : out std_logic_vector(7 downto 0);
+            adr         : out std_logic_vector(15 downto 0);
+            mreq        : out std_logic;
+            iorq        : out std_logic;
+            rd          : out std_logic;
+            wr          : out std_logic;
+            data_z      : out std_logic;
+            adr_z       : out std_logic;
+            controls_z  : out std_logic;
+            rfsh        : out std_logic;
+            p_m1        : out std_logic;
+            halt        : out std_logic;
+            p_wait      : in  std_logic;
+            p_int       : in  std_logic;
+            nmi         : in  std_logic;
+            reset       : in  std_logic;
+            busrq       : in  std_logic;
+            busack      : out std_logic;
+            save_pc     : out std_logic_vector(15 downto 0);
+            save_int    : out std_logic_vector(7 downto 0);
+            restore_pc  : in  std_logic_vector(15 downto 0);
+            restore_int : in  std_logic_vector(7 downto 0);
+            restore_en  : in  std_logic
         );
     end component Z80;
 
 begin
 
-    -- Zilog Z80 CPU
+    restore_en <= not RestorePC_n;
+
     U0 : Z80
+        generic map (
+            T2Write => T2Write
+        )
         port map (
-            clk        => CLK,
-            data_in    => DI,
-            data_out   => DO,
-            adr        => A,
-            mreq       => mreq,
-            iorq       => iorq,
-            rd         => rd,
-            wr         => wr,
-            data_z     => open,              -- data bus is not shared
-            adr_z      => open,              -- address bus is not shared
-            controls_z => open,              -- control lines are not shared
-            rfsh       => rfsh,
-            p_m1       => m1,
-            halt       => halt,
-            p_wait     => not WAIT_n,        -- p_wait is active high
-            p_int      => not INT_n,
-            nmi        => not NMI_n,
-            reset      => not RESET_n,
-            busrq      => not BUSRQ_n,
-            busack     => busack
+            clk         => CLK,
+            data_in     => DI,
+            data_out    => DO,
+            adr         => A,
+            mreq        => mreq,
+            iorq        => iorq,
+            rd          => rd,
+            wr          => wr,
+            data_z      => open,
+            adr_z       => open,
+            controls_z  => open,
+            rfsh        => rfsh,
+            p_m1        => m1,
+            halt        => halt,
+            p_wait      => not WAIT_n,
+            p_int       => not INT_n,
+            nmi         => not NMI_n,
+            reset       => not RESET_n,
+            busrq       => not BUSRQ_n,
+            busack      => busack,
+            save_pc     => save_pc,
+            save_int    => save_int,
+            restore_pc  => RestorePC,
+            restore_int => RestoreINT,
+            restore_en  => restore_en
         );
 
-    -- active high (core) to active low (design)
     M1_n    <= not m1;
     MREQ_n  <= not mreq;
     IORQ_n  <= not iorq;
@@ -123,5 +141,8 @@ begin
     RFSH_n  <= not rfsh;
     HALT_n  <= not halt;
     BUSAK_n <= not busack;
+
+    SavePC  <= save_pc;
+    SaveINT <= save_int;
 
 end architecture rtl;

@@ -61,41 +61,6 @@ use IEEE.std_logic_1164.all;
 use IEEE.std_logic_unsigned.all;
 use IEEE.numeric_std.ALL; 
 
--- M9K 46K:
--- 0000-B7FF
-
-
--- SRAM 512K:
--- 00000-07FFF		General Sound ROM 	32K
--- 08000-7FFFF		General Sound RAM 	480K
-
-
--- SDRAM 32M:
--- 0000000-1FFFFFF
-
--- 4 3210 9876 5432 1098 7654 3210
--- 0 00xx_xxxx xxxx_xxxx xxxx_xxxx	0000000-03FFFFF		RAM		4MB
--- 0 xxxx_xxxx xxxx_xxxx xxxx_xxxx	0400000-0FFFFFF		-----------
--- 1 0000_0xxx xxxx_xxxx xxxx_xxxx	1000000-107FFFF		divMMC 512K
--- 1 0000_1000 00xx_xxxx xxxx_xxxx	1080000-1003FFF		GLUK	16K
--- 1 0000_1000 01xx_xxxx xxxx_xxxx	1084000-1007FFF		TR-DOS	16K
--- 1 0000_1000 10xx_xxxx xxxx_xxxx	1088000-100BFFF		ROM'86	16K
--- 1 0000_1000 11xx_xxxx xxxx_xxxx	108C000-100FFFF		ROM'82	16K
--- 1 0000_1001 000x_xxxx xxxx_xxxx	1090000-1091FFF		divMMC	 8K
-
-
--- FLASH 512K:
--- 00000-5FFFF		Config Cyclone EP3C10
--- 60000-63FFF		General Sound ROM				16K
--- 64000-67FFF		General Sound ROM				16K
--- 68000-6BFFF		GLUK 								16K
--- 6C000-6FFFF		TR-DOS 							16K
--- 70000-73FFF		OS'86 							16K
--- 74000-77FFF		OS'82 							16K
--- 78000-7AFFF		DivMMC							8K
--- 7B000-7BFFF		free						 		8K
--- 7C000-7FFFF		free								16K
-
 entity u8speccy is
 port (
 	-- Clock (50MHz)
@@ -210,7 +175,7 @@ signal vid_hcnt			: std_logic_vector(8 downto 0);
 signal vid_int			: std_logic;
 --!
 signal vid_border		: std_logic;
-signal vid_attr		: std_logic_vector(7 downto 0);
+signal vid_attr		    : std_logic_vector(7 downto 0);
 signal rgb				: std_logic_vector(5 downto 0);
 -- Z-Controller
 signal zc_do_bus		: std_logic_vector(7 downto 0);
@@ -268,19 +233,14 @@ signal covox_b			: std_logic_vector(7 downto 0);
 signal covox_c			: std_logic_vector(7 downto 0);
 signal covox_d			: std_logic_vector(7 downto 0);
 -- General Sound
---signal gs_a				: std_logic_vector(13 downto 0);
---signal gs_b				: std_logic_vector(13 downto 0);
---signal gs_c				: std_logic_vector(13 downto 0);
---signal gs_d				: std_logic_vector(13 downto 0);
-signal gs_a		: std_logic_vector(13 downto 0) := "00000000000000";
-signal gs_b		: std_logic_vector(13 downto 0) := "00000000000000";
-signal gs_c		: std_logic_vector(13 downto 0) := "00000000000000";
-signal gs_d		: std_logic_vector(13 downto 0) := "00000000000000";
+signal gs_a		        : std_logic_vector(13 downto 0) := "00000000000000";
+signal gs_b		        : std_logic_vector(13 downto 0) := "00000000000000";
+signal gs_c		        : std_logic_vector(13 downto 0) := "00000000000000";
+signal gs_d		        : std_logic_vector(13 downto 0) := "00000000000000";
 signal gs_do_bus		: std_logic_vector(7 downto 0);
 signal gs_mdo			: std_logic_vector(7 downto 0);
 signal gs_ma			: std_logic_vector(18 downto 0);
---signal gs_mwe_n			: std_logic;
-signal gs_mwe_n		: std_logic := '1';
+signal gs_mwe_n		    : std_logic := '1';
 
 -- UART
 signal uart_do_bus		: std_logic_vector(7 downto 0);
@@ -343,32 +303,35 @@ port map (
 	c2		=> clk_interface,	-- 21.0 MHz
 	c3		=> clk_sdr);		-- 84.0 MHz
 
--- Zilog Z80A CPU (Verilog core, see cores/rtl)
+-- Zilog Z80A CPU (Verilog core wrapper)
 U1: entity work.Z80s
+generic map (
+    Mode    => 0,   -- 0 => Z80, 1 => Fast Z80, 2 => 8080, 3 => GB
+    T2Write => 1,   -- 0 => WR_n active in T3, 1 => WR_n active in T2
+    IOWait  => 1)   -- 0 => Single cycle I/O, 1 => Std I/O cycle
 port map(
-	RESET_n		=> cpu0_reset_n,
-	--CLK_n		=> cpuclk,
-	CLK		=> cpuclk,
-	WAIT_n		=> '1',
-	INT_n		=> cpu0_int_n,
-	NMI_n		=> cpu0_nmi_n,
-	BUSRQ_n		=> '1',
-	M1_n		=> cpu0_m1_n,
-	MREQ_n		=> cpu0_mreq_n,
-	IORQ_n		=> cpu0_iorq_n,
-	RD_n		=> cpu0_rd_n,
-	WR_n		=> cpu0_wr_n,
-	RFSH_n		=> cpu0_rfsh_n,
-	HALT_n		=> open,
-	BUSAK_n		=> open,
-	A			=> cpu0_a_bus,
-	DI			=> cpu0_di_bus,
-	DO			=> cpu0_do_bus);
-	--SavePC      => open,
-	--SaveINT     => open,
-	--RestorePC   => (others => '1'),
-	--RestoreINT  => (others => '1'),
-	--RestorePC_n => '1');
+    RESET_n     => cpu0_reset_n,
+    CLK         => cpuclk,
+    WAIT_n      => '1',
+    INT_n       => cpu0_int_n,
+    NMI_n       => cpu0_nmi_n,
+    BUSRQ_n     => '1',
+    M1_n        => cpu0_m1_n,
+    MREQ_n      => cpu0_mreq_n,
+    IORQ_n      => cpu0_iorq_n,
+    RD_n        => cpu0_rd_n,
+    WR_n        => cpu0_wr_n,
+    RFSH_n      => cpu0_rfsh_n,
+    HALT_n      => open,
+    BUSAK_n     => open,
+    A           => cpu0_a_bus,
+    DI          => cpu0_di_bus,
+    DO          => cpu0_do_bus,
+    SavePC      => open,
+    SaveINT     => open,
+    RestorePC   => (others => '0'),
+    RestoreINT  => (others => '0'),
+    RestorePC_n => '1');
 
 -- Video Spectrum/Pentagon
 U2: entity work.video
@@ -378,13 +341,8 @@ port map (
 	INTA		=> cpu0_inta_n,
 	INT			=> cpu0_int_n,
 	BORDER		=> port_xxfe_reg(2 downto 0),	-- Bits D0..D2 of port xxFE define the border color
-	
-	--!
-	--BORDON		=> open, --vid_border,
 	BORDON		=> vid_border,
-	--ATTR		=> open, --vid_attr,
 	ATTR		=> vid_attr,
-	
 	A			=> vid_a_bus,
 	DI			=> vid_di_bus,
 	MODE		=> key_f(7) & key_f(12),		-- 0: Spectrum; 1: Pentagon
@@ -428,7 +386,6 @@ port map(
 -- PS/2 Mouse Controller
 U5: entity work.mouse
 generic map (
-	-- This allows the use of the scroll-wheel on mice that have them.
 	intelliMouseSupport => true,	-- Enable support for intelli-mouse mode.
 	clockFilter 		=> 15,		-- Number of system-cycles used for PS/2 clock filtering
 	ticksPerUsec		=> 28)		-- Timer calibration 28Mhz clock
@@ -476,21 +433,19 @@ port map (
 	MOSI		=> zc_mosi,
 	MISO		=> SD_DAT0);
 
--- SPI (M25P40) 25MHz Max SCK
+-- SPI (M25P40) 25MHz Max SCK (Updated Interface)
 U8: entity work.spi
 port map (
-	RESET		=> reset,
-	CLK			=> clk_bus,
-	SCK			=> clk_interface,
-	A			=> cpu0_a_bus(0),
-	DI			=> cpu0_do_bus,
-	DO			=> spi_do_bus,
-	WR			=> spi_wr,
-	BUSY		=> spi_busy,
-	CS_n		=> spi_cs_n,
-	SCLK		=> spi_clk,
-	MOSI		=> spi_si,
-	MISO		=> spi_so);
+	I_RESET		=> reset,
+	I_CLK		=> clk_bus,
+	I_SCK		=> clk_interface,
+	I_DI		=> cpu0_do_bus,
+	O_DO		=> spi_do_bus,
+	I_WR		=> spi_wr,
+	O_BUSY		=> spi_busy,
+	O_SCLK		=> spi_clk,
+	O_MOSI		=> spi_si,
+	I_MISO		=> spi_so);
 	
 -- TurboSound
 U9: entity work.turbosound
@@ -690,12 +645,10 @@ areset <= not RST_n;							-- global reset
 reset <= areset or key_reset or not locked;		-- hot reset
 cpu0_reset_n <= not(reset) and not(kb_f_bus(4));-- CPU reset
 cpu0_inta_n <= cpu0_iorq_n or cpu0_m1_n;		-- INTA
---cpu0_nmi_n	<= kb_f_bus(5);						-- NMI
-cpu0_nmi_n <= not kb_f_bus(5);				-- NMI
+cpu0_nmi_n <= not kb_f_bus(5);				    -- NMI
 
 -------------------------------------------------------------------------------
 -- SDRAM
---sdr_wr <= '1' when cpu0_mreq_n = '0' and cpu0_wr_n = '0' and ((mux = "1001" and (divmmc_e3reg(1 downto 0) /= "11" and divmmc_e3reg(6) /= '1')) or mux(3 downto 2) = "11" or mux(3 downto 2) = "01" or mux(3 downto 1) = "101" or mux(3 downto 1) = "001") else '0';
 sdr_wr <= '1' when cpu0_mreq_n = '0' and cpu0_wr_n = '0' and (mux = "1001" or mux(3 downto 2) = "11" or mux(3 downto 2) = "01" or mux(3 downto 1) = "101" or mux(3 downto 1) = "001") else '0';
 sdr_rd <= not (cpu0_mreq_n or cpu0_rd_n);
 sdr_rfsh <= not cpu0_rfsh_n;
@@ -729,10 +682,16 @@ begin
 		port_0000_reg <= (others => '0');	-- mask by AND port #DFFD
 		port_0001_reg <= (others => '0');	-- bit2 = 0:Loader ON, 1:Loader OFF; bit1 = 0:SRAM<->CPU0, 1:SRAM<->GS; bit0 = 0:VS1053, 1:M25P40
 		loader_act <= '1';
+		spi_cs_n   <= '1';                  -- Сброс линии выбора кристалла SPI Flash (NCSO)
 	elsif clk_bus'event and clk_bus = '1' then
 		if cpu0_iorq_n = '0' and cpu0_wr_n = '0' and cpu0_a_bus(15 downto 0) = X"0000" then port_0000_reg <= cpu0_do_bus; end if;
 		if cpu0_iorq_n = '0' and cpu0_wr_n = '0' and cpu0_a_bus(15 downto 0) = X"0001" then port_0001_reg <= cpu0_do_bus; end if;
 		if cpu0_m1_n = '0' and cpu0_mreq_n = '0' and cpu0_a_bus = X"0000" and port_0001_reg(2) = '1' then loader_act <= '0'; end if;
+        
+        -- Управление Chip Select для SPI Flash M25P40 (порт #03)
+        if cpu0_iorq_n = '0' and cpu0_wr_n = '0' and cpu0_a_bus(7 downto 0) = X"03" then 
+            spi_cs_n <= cpu0_do_bus(0); 
+        end if;
 	end if;
 end process;
 
@@ -763,7 +722,6 @@ mux <= ((divmmc_amap or divmmc_e3reg(7)) and key_f(6)) & cpu0_a_bus(15 downto 13
 process (mux, port_7ffd_reg, port_dffd_reg, port_0000_reg, ram_a_bus, cpu0_a_bus, dos_act, port_1ffd_reg, divmmc_e3reg, key_f)
 begin
 	case mux is
---		when "1000" => ram_a_bus <= "10000" & not(divmmc_e3reg(6)) & "00" & not(divmmc_e3reg(6)) & '0' & divmmc_e3reg(6) & divmmc_e3reg(6);	-- ESXDOS ROM 0000-1FFF
 		when "0000" => ram_a_bus <= "100001000" & ((not(dos_act) and not(port_1ffd_reg(1))) or key_f(6)) & (port_7ffd_reg(4) and not(port_1ffd_reg(1))) & '0';	-- Seg0 ROM 0000-1FFF
 		when "0001" => ram_a_bus <= "100001000" & ((not(dos_act) and not(port_1ffd_reg(1))) or key_f(6)) & (port_7ffd_reg(4) and not(port_1ffd_reg(1))) & '1';	-- Seg0 ROM 2000-3FFF
 		when "1000" => ram_a_bus <= "100001001000";	-- ESXDOS ROM 0000-1FFF
@@ -805,7 +763,7 @@ end process;
 -- VS1053 <> MP25P40
 process (port_0001_reg, spi_si, spi_clk, spi_cs_n, DATA0, vs_si, vs_sclk)
 begin
-	if port_0001_reg(0) = '0' then	-- bit2 = 0:Loader ON, 1:Loader OFF; bit1 = 0:SRAM<->CPU0, 1:SRAM<->GS; bit0 = 0:VS1053, 1:M25P40
+	if port_0001_reg(0) = '0' then	-- bit0 = 0:VS1053, 1:M25P40
 		vs_so <= DATA0;
 		spi_so <= 'X';
 		ASDO <= vs_si;
@@ -816,7 +774,7 @@ begin
 		spi_so <= DATA0;
 		ASDO <= spi_si;
 		DCLK <= spi_clk;
-		NCSO <= spi_cs_n;
+		NCSO <= spi_cs_n; -- Возвращаем управление линией выбора кристалла флешки
 	end if;
 end process;
 
@@ -831,7 +789,7 @@ vs_cn_bus <= audio_l(7 downto 0) & audio_l(15 downto 8) & audio_r(7 downto 0) & 
 rtc_wr 		<= '1' when (cpu0_a_bus(7 downto 5) = "100" and cpu0_a_bus(3 downto 0) = "1100" and cpu0_wr_n = '0' and cpu0_iorq_n = '0') else '0';	-- Port xx8C/xx9C[xxxxxxxx_100n1100]
 mc146818_wr	<= '1' when (port_bff7 = '1' and cpu0_wr_n = '0') else '0';
 port_bff7 	<= '1' when (cpu0_iorq_n = '0' and cpu0_a_bus = X"BFF7" and cpu0_m1_n = '1' and port_eff7_reg(7) = '1') else '0';
-spi_wr 		<= '1' when (cpu0_iorq_n = '0' and cpu0_wr_n = '0' and cpu0_a_bus(7 downto 1) = "0000001") else '0';
+spi_wr 		<= '1' when (cpu0_iorq_n = '0' and cpu0_wr_n = '0' and cpu0_a_bus(7 downto 0) = X"02") else '0'; -- Только порт 02 (数据)
 uart_wr 	<= '1' when (cpu0_iorq_n = '0' and cpu0_wr_n = '0' and cpu0_a_bus(7 downto 0) = X"BC") else '0';	-- Port xxBC[xxxxxxxx_10111100]
 uart_rd 	<= '1' when (cpu0_iorq_n = '0' and cpu0_rd_n = '0' and cpu0_a_bus(7 downto 0) = X"BC") else '0';	-- Port xxBC[xxxxxxxx_10111100]
 ms_left 	<= not(ms_left) when (ms_but_bus(1)'event and ms_but_bus(1) = '1' and ms_but_bus(0) = '1');
@@ -841,8 +799,6 @@ vs_wr 		<= '1' when (cpu0_iorq_n = '0' and cpu0_wr_n = '0' and cpu0_a_bus(7 down
 
 -------------------------------------------------------------------------------
 -- Function keys Fx
-
--- F3 = 3.5/7.0MHz, F4 = CPU RESET, F5 = NMI, F6 = divMMC, F7 = canvas, F8 = peripheral controller, F9 = turbo 7.0/14.0MHz, F11 = soundrive, F12 = video mode 0: Spectrum; 1: Pentagon;
 process (clk_bus, key, kb_f_bus, key_f)
 begin
 	if (clk_bus'event and clk_bus = '1') then
